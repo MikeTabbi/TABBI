@@ -5,32 +5,57 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
-from hallway_nav_env import HallwayNavEnv
+from stable_baselines3.common.callbacks import CheckpointCallback
+from straight_hallway_env import StraightHallwayEnv  # CHANGED: Use simple straight hallway
 import time
 
 
 def train():
-    """Train the hallway navigation policy."""
+    """Train the hallway navigation policy with TensorBoard monitoring."""
+    
+    # Define directories for saving
+    checkpoint_dir = "./checkpoints/"
+    tensorboard_dir = "./tensorboard_logs/"
     
     print("=" * 50)
     print("TABBI Hallway Navigation Training")
+    print("SIMPLE STRAIGHT HALLWAY")
+    print("WITH TENSORBOARD MONITORING")
+    print("=" * 50)
+    print(f"\nCheckpoints will be saved to: {checkpoint_dir}")
+    print(f"TensorBoard logs will be saved to: {tensorboard_dir}")
+    print("\nTo view training progress in real-time:")
+    print("  1. Open a new terminal")
+    print("  2. Run: tensorboard --logdir=./tensorboard_logs")
+    print("  3. Open browser to: http://localhost:6006")
     print("=" * 50)
     
     # Create environment (headless for fast training)
-    print("\nCreating hallway environment...")
-    env = HallwayNavEnv(render_mode=None)
+    print("\nCreating SIMPLE STRAIGHT hallway environment...")
+    env = StraightHallwayEnv(render_mode=None)  # CHANGED: Simple hallway
     
     # Check environment
     print("Checking environment...")
     check_env(env, warn=True)
     print("Environment check passed!")
     
-    # Create PPO model
-    print("\nCreating PPO model...")
+    # Create checkpoint callback
+    print("\nSetting up checkpoint system...")
+    checkpoint_callback = CheckpointCallback(
+        save_freq=100000,  # Save every 100k steps
+        save_path=checkpoint_dir,
+        name_prefix="straight_hallway_nav",  # CHANGED: New prefix
+        verbose=1
+    )
+    print("Checkpoints will be saved every 100,000 steps")
+    
+    # Create PPO model with TensorBoard logging
+    print("\nCreating PPO model with TensorBoard logging...")
     model = PPO(
         policy="MlpPolicy",
         env=env,
         verbose=1,
+        tensorboard_log=tensorboard_dir,  # Enable TensorBoard
         learning_rate=0.0003,
         n_steps=2048,
         batch_size=64,
@@ -41,21 +66,39 @@ def train():
     
     # Train
     print("\n" + "=" * 50)
-    print("Starting training for 100,000 timesteps...")
-    print("This will take several minutes.")
+    print("Starting training for 500,000 timesteps...")
+    print("Environment: SIMPLE STRAIGHT HALLWAY (12m x 3m)")
+    print("This will take approximately 30-60 minutes.")
+    print("The robot is learning in headless mode (no GUI).")
+    print("You'll see the trained robot perform when testing!")
     print("Watch for 'ep_rew_mean' to increase over time.")
+    print("Checkpoints: 100k, 200k, 300k, 400k, 500k steps")
     print("=" * 50 + "\n")
     
-    model.learn(total_timesteps=100000)
+    model.learn(
+        total_timesteps=500000,  # Full training
+        callback=checkpoint_callback,
+        tb_log_name="straight_hallway_run"  # CHANGED: New run name
+    )
     
     print("\n" + "=" * 50)
     print("Training complete!")
     print("=" * 50)
     
-    # Save model
-    model_path = "simulation/hallway_navigation_policy"
+    # Save final model
+    model_path = "straight_hallway_navigation_policy_final"  # CHANGED: New name
     model.save(model_path)
-    print(f"\nModel saved to: {model_path}")
+    print(f"\nFinal model saved to: {model_path}")
+    
+    print("\n" + "=" * 50)
+    print("TRAINING ANALYSIS")
+    print("=" * 50)
+    print("\nTo view training graphs:")
+    print("  tensorboard --logdir=./tensorboard_logs")
+    print("  Then open: http://localhost:6006")
+    print("\nCheckpoints saved at:")
+    print(f"  {checkpoint_dir}")
+    print("=" * 50)
     
     env.close()
     
@@ -70,7 +113,7 @@ def test(model_path):
     print("=" * 50)
     
     # Create environment with GUI
-    env = HallwayNavEnv(render_mode="human")
+    env = StraightHallwayEnv(render_mode="human")  # CHANGED: Simple hallway
     
     # Load trained model
     model = PPO.load(model_path)
@@ -119,4 +162,12 @@ def test(model_path):
 
 if __name__ == "__main__":
     model_path = train()
-    test(model_path)
+    
+    # Ask user if they want to test
+    print("\n" + "=" * 50)
+    response = input("Do you want to test the trained model now? (y/n): ")
+    if response.lower() == 'y':
+        test(model_path)
+    else:
+        print("Skipping testing. You can test later by running:")
+        print(f"  python -c 'from train_hallway_navigation import test; test(\"{model_path}\")'")

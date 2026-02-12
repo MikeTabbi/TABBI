@@ -1,0 +1,6 @@
+path: /Users/sirmike/dev/TABBI/data/door_images
+train: train
+val: train
+
+nc: 2
+names: ['door', 'sign']

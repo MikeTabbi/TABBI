@@ -23,54 +23,54 @@ class HallwayNavEnv(gym.Env):
         
         self.render_mode = render_mode
         
-        # Connect to PyBullet
+        # how pybullet connects
         if render_mode == "human":
             self.physics_client = p.connect(p.GUI)
         else:
             self.physics_client = p.connect(p.DIRECT)
         
-        # Set up environment
+        # env setup
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         p.setGravity(0, 0, -9.81)
         
-        # Load floor
+        # floor
         self.plane_id = p.loadURDF("plane.urdf")
         
-        # Create hallway environment
+        # making a hallway
         self.env_data = create_hallway_environment(env_size=20, hallway_width=3)
         self.walls = self.env_data['walls']
         self.valid_positions = self.env_data['valid_positions']
         
-        # Load robot
+        # spot jr
         self.robot_id = p.loadURDF(
             "husky/husky.urdf",
             [0, 0, 0.2],
             p.getQuaternionFromEuler([0, 0, 0])
         )
         
-        # Wheel joints
+        # spot jr's wheel joints
         self.front_left = 2
         self.front_right = 3
         self.rear_left = 4
         self.rear_right = 5
         
-        # Movement parameters
+        # spot jr's movement parameters
         self.forward_velocity = 10
         self.turn_velocity = 5
         
-        # Environment parameters
+        # parameters of the environment
         self.max_steps = 1000
         self.goal_threshold = 1.0
         self.step_count = 0
         
-        # Goal
+        # spot jr's goal
         self.goal_position = [0, 0]
         self.previous_distance = 0
         
-        # Action space: 0=forward, 1=turn_left, 2=turn_right
+        # action space: 0=forward, 1=turn_left, 2=turn_right
         self.action_space = spaces.Discrete(3)
         
-        # Observation space
+        # observation space
         # [robot_x, robot_y, robot_angle, dist_to_goal, angle_to_goal, dist_front, dist_left, dist_right]
         self.observation_space = spaces.Box(
             low=np.array([-15, -15, -np.pi, 0, -np.pi, 0, 0, 0], dtype=np.float32),
@@ -78,7 +78,7 @@ class HallwayNavEnv(gym.Env):
             dtype=np.float32
         )
         
-        # Camera setup
+        # camera
         if render_mode == "human":
             p.resetDebugVisualizerCamera(
                 cameraDistance=25,
@@ -93,7 +93,7 @@ class HallwayNavEnv(gym.Env):
         
         self.step_count = 0
         
-        # Random start position
+        # random start position
         start_pos = get_random_hallway_position(self.valid_positions)
         start_angle = random.uniform(-np.pi, np.pi)
         
@@ -103,10 +103,10 @@ class HallwayNavEnv(gym.Env):
             p.getQuaternionFromEuler([0, 0, start_angle])
         )
         
-        # Stop wheels
+        # wheels stop
         self._set_wheel_velocities(0, 0)
         
-        # Random goal position (different from start)
+        # random goal
         while True:
             goal_pos = get_random_hallway_position(self.valid_positions)
             dist = math.sqrt((goal_pos[0] - start_pos[0])**2 + (goal_pos[1] - start_pos[1])**2)
